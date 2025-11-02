@@ -13,6 +13,7 @@ yelp_dataset/
 .Rhistory
 .Ruserdata
 
+# RStudio internal state
 .Rproj.user/
 
 # macOS Finder junk
