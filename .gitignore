@@ -1,0 +1,19 @@
+# big / local / sensitive data (don't push)
+Yelp_JSON/
+replication_packages/
+data_sources/
+yelp_dataset/
+*.zip
+
+# R session junk
+.RData
+.RDataTmp
+.RDataTmp1
+.Rapphistory
+.Rhistory
+.Ruserdata
+
+.Rproj.user/
+
+# macOS Finder junk
+.DS_Store
