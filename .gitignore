@@ -6,7 +6,7 @@ yelp_dataset/
 *.zip
 
 # R session junk
-.RData
+*.RData
 .RDataTmp
 .RDataTmp1
 .Rapphistory
