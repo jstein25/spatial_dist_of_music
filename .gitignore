@@ -1,8 +1,8 @@
 # general data
-*.csv
 *.xlsx
 *.json
 *.txt
+*.csv
 
 # llm data
 *.bin
@@ -20,3 +20,4 @@
 
 # big R folders
 yelp_data_work/.Rproj.user/
+.Rproj.user
