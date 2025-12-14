@@ -1,0 +1,20 @@
+# general data
+*.csv
+*.xlsx
+*.json
+*.txt
+
+# llm data
+*.bin
+
+# Unwanted R files
+*.RData
+.RDatatmp
+.RDatatmp1
+.RDatatmp2
+.RDatatmp3
+.RDataTmp4
+*.DS_Store
+
+# big R folders
+yelp_data_work/.Rproj.user/
