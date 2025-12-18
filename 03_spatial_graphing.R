@@ -329,7 +329,7 @@ resize_city_plots <- wrap_plots(
     )
 
 # Cities with tracts + water --------------------------
-graph_city_business_pretty <- function(city_name, year = 2024) {
+graph_city_rb_pretty <- function(city_name, year = 2024) {
   layers <- get_city_layers(city_name, year = year)
   city_poly <- layers$city
   city_key <- clean_city(city_name)
@@ -353,11 +353,11 @@ graph_city_business_pretty <- function(city_name, year = 2024) {
 }
 
 purrr::walk(CITIES, \(city) {
-  p <- graph_city_business_pretty(city)
+  p <- graph_city_rb_pretty(city)
 
   file <- file.path(
     "graphs/cities",
-    paste0("businesses_", str_replace_all(tolower(city), "\\s+", "_"), ".png")
+    paste0("rb_", str_replace_all(tolower(city), "\\s+", "_"), ".png")
   )
 
   ggsave(filename = file, plot = p, width = 8, height = 6, dpi = 300)
@@ -374,7 +374,7 @@ business_city_plots <- wrap_plots(
     plot.margin = margin(6, 6, 14, 6)
   )
 
-ggsave(filename = "graphs/cities/all_business_city_plots.png", 
+ggsave(filename = "graphs/cities/all_rb_city_plots.png", 
        business_city_plots, width = 14, height = 10, dpi = 300)
 
 
