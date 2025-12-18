@@ -3,7 +3,7 @@
 library(tidyverse)
 library(writexl)
 library(readxl)
-
+set.seed(123)
 
 # FILTER FOR CITIES ----------------------------------------
 # this might be a slightly controversial step, but
@@ -55,11 +55,14 @@ all_business_categories <- businesses_by_categories |>
   unique() # 1265 different categories
 
 ## export to excel for categorization. ---------
-write_xlsx(all_business_categories, "data_output/business_categories.xlsx")
+write_xlsx(all_business_categories, "output/business_categories.xlsx")
 
 ## After manually adding food/drink dummy -------
-category_dummies <- read_excel("data_output/business_categories_with_dummy.xlsx")
+category_dummies <- read_excel("data/business_categories_with_dummy.xlsx")
 
+# take sample for paper
+category_sample <- category_dummies |> 
+  slice_sample(n = 10)
 
 # filter for restaurants/bars ----------------------------------------
 restaurants_and_bars <- businesses_by_categories |> 
@@ -70,17 +73,16 @@ restaurants_and_bars <- businesses_by_categories |>
     categories = paste(categories, collapse = ", "),
     across(everything(), first),
     .groups = "drop"
-  ) # 26926 restaurants and bars
+  ) # 26909 restaurants and bars
 
 # get a sample to evaluate filtering
 sample_restaurants_and_bars <- restaurants_and_bars |> 
-  slice_sample(n = 100)
+  slice_sample(n = 100) # (progressively udpated business categories)
 
 # ids to filter reviews with
 restaurant_and_bar_ids <- restaurants_and_bars |> 
   select(business_id) |> 
   pull(business_id)
-
 
 
 # count reviews per restaurant/bar ------------------------------------------
@@ -89,15 +91,14 @@ avg_num_reviews <- restaurants_and_bars |>
   summarize(
     avg_reviews = mean(review_count)
   ) |>
-  pull(avg_reviews)
+  pull(avg_reviews) # avg of 109 reviews per restaurant/bar
 
 median_num_reviews <- restaurants_and_bars |> 
   select(review_count) |> 
   summarize(
     median_reviews = median(review_count)
   ) |>
-  pull(median_reviews)
-
+  pull(median_reviews) # median of 37
 
 
 

@@ -1,13 +1,7 @@
-# =============================================================================
-# Live music maps (US / states / cities) with water + tracts + sized points
-# =============================================================================
-
+# this 
 library(tigris)
 library(sf)
-library(dplyr)
-library(purrr)
 library(stringr)
-library(ggplot2)
 library(patchwork)
 
 options(tigris_use_cache = TRUE)
@@ -16,6 +10,7 @@ options(tigris_class = "sf")
 # Globals -----------------------------------------------------------------
 COLORS <- c("#0072B2", "#D55E00")  # Okabe–Ito: blue, vermillion
 NUM_GRAPH_COLS <- 3
+FONT_SIZE <- 15
 
 STATES <- c("ID", "NV", "CA", "AZ",
             "MO", "IN", "PA",
@@ -41,6 +36,7 @@ place_alias <- c(
   "Indianapolis" = "Indianapolis city",
   "St Louis"     = "St. Louis"
 )
+
 
 # Output folders ----------------------------------------------------------
 dir.create("graphs", showWarnings = FALSE, recursive = TRUE)
@@ -124,7 +120,6 @@ get_city_layers <- function(city_name, year = 2024) {
 }
 
 # Points (SF) -------------------------------------------------------------
-# NOTE: expects filtered_business_data and restaurants_and_bars already exist
 business_points <- filtered_business_data |>
   transmute(
     longitude, latitude,
@@ -159,7 +154,7 @@ us_plot <- ggplot() +
   theme_void()
 
 ggsave(
-  filename = "graphs/us_businesses.png",
+  filename = "graphs/us/us_businesses.png",
   plot     = us_plot,
   device   = "png",
   width    = 10,
@@ -169,7 +164,9 @@ ggsave(
 
 # State plots (outline + county lines + points) ---------------------------
 graph_state <- function(points_df, state_abbr, color = COLORS[1]) {
-  st_outline <- states(state = state_abbr, cb = TRUE)
+  st_outline <- states(cb = TRUE, year = 2024) |>
+  filter(STUSPS == state_abbr)
+  
   st_counties <- counties(state = state_abbr, cb = TRUE)
 
   pts <- points_df |>
@@ -202,13 +199,16 @@ state_business_plots <- wrap_plots(
 
 state_restaurant_bar_plots <- wrap_plots(
   lapply(STATES, graph_state_restaurant_bar),
-  ncol = NUM_GRAPH_COLS
-) + plot_annotation(tag_levels = list(STATES))
+  ncol = NUM_GRAPH_COLS) + 
+  plot_annotation(
+    tag_levels = list(STATES),
+    theme = theme(plot.tag = element_text(size = FONT_SIZE))
+    )
 
-ggsave("graphs/state_business.png", plot = state_business_plots, width = 12, height = 8, dpi = 300)
-ggsave("graphs/state_rb.png",       plot = state_restaurant_bar_plots, width = 12, height = 8, dpi = 300)
+ggsave("graphs/states/state_business.png", plot = state_business_plots, width = 12, height = 8, dpi = 300)
+ggsave("graphs/states/state_rb.png",       plot = state_restaurant_bar_plots, width = 12, height = 8, dpi = 300)
 
-# City plots (points only) ------------------------------------------------
+# City plots ------------------------------------------------
 graph_city <- function(points_df, city_name, color = COLORS[1], year = 2024) {
   city_shape <- get_city_shape(city_name, year = year)
   city_key <- clean_city(city_name)
@@ -237,13 +237,19 @@ graph_city_restaurant_bar <- function(city_name) {
 
 city_business_plots <- wrap_plots(
   lapply(CITIES, graph_city_business),
-  ncol = NUM_GRAPH_COLS
-) + plot_annotation(tag_levels = list(CITIES))
+  ncol = NUM_GRAPH_COLS) + 
+  plot_annotation(
+    tag_levels = list(CITIES),
+    theme = theme(plot.tag = element_text(size = FONT_SIZE))
+    )
 
 city_restaurant_plots <- wrap_plots(
   lapply(CITIES, graph_city_restaurant_bar),
-  ncol = NUM_GRAPH_COLS
-) + plot_annotation(tag_levels = list(CITIES))
+  ncol = NUM_GRAPH_COLS) + 
+  plot_annotation(
+    tag_levels = list(CITIES),
+    theme = theme(plot.tag = element_text(size = FONT_SIZE))
+    )
 
 ggsave("graphs/city_businesses.png", plot = city_business_plots, width = 12, height = 8, dpi = 300)
 ggsave("graphs/city_rb.png",         plot = city_restaurant_plots, width = 12, height = 8, dpi = 300)
@@ -277,8 +283,11 @@ graph_live_music_city <- function(city_name, year = 2024) {
 
 comparison_city_plots <- wrap_plots(
   lapply(CITIES, graph_live_music_city),
-  ncol = NUM_GRAPH_COLS
-) + plot_annotation(tag_levels = list(CITIES))
+  ncol = NUM_GRAPH_COLS) + 
+  plot_annotation(
+    tag_levels = list(CITIES),
+    theme = theme(plot.tag = element_text(size = FONT_SIZE))
+    )
 
 philly_plot    <- graph_live_music_city("Philadelphia")
 nashville_plot <- graph_live_music_city("Nashville")
@@ -313,10 +322,62 @@ resize_city <- function(city_name, points_df = restaurant_bar_points, color = CO
 
 resize_city_plots <- wrap_plots(
   lapply(CITIES, resize_city),
-  ncol = NUM_GRAPH_COLS
-) + plot_annotation(tag_levels = list(CITIES))
+  ncol = NUM_GRAPH_COLS) + 
+  plot_annotation(
+    tag_levels = list(CITIES),
+    theme = theme(plot.tag = element_text(size = FONT_SIZE))
+    )
 
-# Cities with tracts + water (fixed point size) --------------------------
+# Cities with tracts + water --------------------------
+graph_city_business_pretty <- function(city_name, year = 2024) {
+  layers <- get_city_layers(city_name, year = year)
+  city_poly <- layers$city
+  city_key <- clean_city(city_name)
+
+  pts <- restaurant_bar_points |>
+    filter(city == city_key) |>
+    st_transform(st_crs(city_poly))
+
+  bb <- st_bbox(city_poly)
+
+  ggplot() +
+  geom_sf(data = layers$water_poly, color = NA, alpha = 0.5) +
+  geom_sf(data = layers$water_line, alpha = 0.2) +
+  geom_sf(data = layers$tracts, fill = NA, linewidth = 0.15, alpha = 0.7) +
+  geom_sf(data = city_poly, fill = NA, linewidth = 0.4) +
+  geom_sf(data = pts, color = COLORS[1], alpha = 0.45, size = 0.1) +
+  scale_colour_manual(name   = "") +
+  coord_sf(xlim = c(bb["xmin"], bb["xmax"]),
+           ylim = c(bb["ymin"], bb["ymax"])) +
+  theme_void()
+}
+
+purrr::walk(CITIES, \(city) {
+  p <- graph_city_business_pretty(city)
+
+  file <- file.path(
+    "graphs/cities",
+    paste0("businesses_", str_replace_all(tolower(city), "\\s+", "_"), ".png")
+  )
+
+  ggsave(filename = file, plot = p, width = 8, height = 6, dpi = 300)
+})
+
+business_city_plots <- wrap_plots(
+  lapply(CITIES, graph_city_business_pretty), ncol = NUM_GRAPH_COLS) + 
+  plot_annotation(tag_levels = list(CITIES)) +
+  plot_layout(guides = "collect") &
+  theme(
+    legend.position = "right",
+    plot.tag = element_text(size = FONT_SIZE, face = "plain", hjust = 0.5),
+    plot.tag.position = c(0.5, 0.0),
+    plot.margin = margin(6, 6, 14, 6)
+  )
+
+ggsave(filename = "graphs/cities/all_business_city_plots.png", 
+       business_city_plots, width = 14, height = 10, dpi = 300)
+
+
 graph_live_music_city_pretty <- function(city_name, year = 2024) {
   layers <- get_city_layers(city_name, year = year)
   city_poly <- layers$city
@@ -326,21 +387,27 @@ graph_live_music_city_pretty <- function(city_name, year = 2024) {
     filter(city == city_key) |>
     st_transform(st_crs(city_poly))
 
-  rb_points <- pts
-  lm_points <- pts |> filter(live_music == 1)
+  rb_points <- pts |> mutate(pt_type = "No Live Music")
+  lm_points <- pts |> filter(live_music == 1) |>  mutate(pt_type = "Live Music")
 
   bb <- st_bbox(city_poly)
 
   ggplot() +
-    geom_sf(data = layers$water_poly, color = NA, alpha = 0.5) +
-    geom_sf(data = layers$water_line, alpha = 0.2) +
-    geom_sf(data = layers$tracts, fill = NA, linewidth = 0.15, alpha = 0.7) +
-    geom_sf(data = city_poly, fill = NA, linewidth = 0.4) +
-    geom_sf(data = rb_points, color = COLORS[1], alpha = 0.45, size = 0.2) +
-    geom_sf(data = lm_points, color = COLORS[2], alpha = 0.75, size = 0.2) +
-    coord_sf(xlim = c(bb["xmin"], bb["xmax"]),
-             ylim = c(bb["ymin"], bb["ymax"])) +
-    theme_void()
+  geom_sf(data = layers$water_poly, color = NA, alpha = 0.5) +
+  geom_sf(data = layers$water_line, alpha = 0.2) +
+  geom_sf(data = layers$tracts, fill = NA, linewidth = 0.15, alpha = 0.7) +
+  geom_sf(data = city_poly, fill = NA, linewidth = 0.4) +
+  geom_sf(data = rb_points, aes(colour = pt_type), alpha = 0.45, size = 0.2) +
+  geom_sf(data = lm_points, aes(colour = pt_type), alpha = 0.75, size = 0.2) +
+  scale_colour_manual(
+    name   = "",
+    values = c("No Live Music" = COLORS[1], "Live Music" = COLORS[2])
+  ) +
+  coord_sf(xlim = c(bb["xmin"], bb["xmax"]),
+           ylim = c(bb["ymin"], bb["ymax"])) +
+  theme_void() +
+  guides(colour = guide_legend(override.aes = list(size = 2, alpha = 1))) +
+  theme(legend.position = "bottom")
 }
 
 purrr::walk(CITIES, \(city) {
@@ -354,7 +421,37 @@ purrr::walk(CITIES, \(city) {
   ggsave(filename = file, plot = p, width = 8, height = 6, dpi = 300)
 })
 
-# Cities with tracts + water + sized points ------------------------------
+pretty_city_plots <- wrap_plots(
+  lapply(CITIES, graph_live_music_city_pretty), ncol = NUM_GRAPH_COLS) + 
+  plot_annotation(tag_levels = list(CITIES)) +
+  plot_layout(guides = "collect") &
+  theme(
+    legend.position = "right",
+    plot.tag = element_text(size = FONT_SIZE, face = "plain", hjust = 0.5),
+    plot.tag.position = c(0.5, 0.0),
+    plot.margin = margin(6, 6, 14, 6)
+  )
+
+ggsave(filename = "graphs/cities/all_pretty_city_plots.png", 
+       pretty_city_plots, width = 14, height = 10, dpi = 300)
+
+
+small_city_list <- c("Nashville", "New Orleans", "Philadelphia")
+small_pretty_cities <- wrap_plots(
+  lapply(small_city_list, graph_live_music_city_pretty), ncol = NUM_GRAPH_COLS) + 
+  plot_annotation(tag_levels = list(small_city_list)) +
+  plot_layout(guides = "collect") &
+  theme(
+    legend.position = "right",
+    plot.tag = element_text(size = FONT_SIZE, face = "plain", hjust = 0.5),
+    plot.tag.position = c(0.5, 0.0),
+    plot.margin = margin(6, 6, 14, 6)
+  )
+
+ggsave(filename = "graphs/sized_cities/small_pretty_city_plots.png", small_pretty_cities)
+
+
+# Sized points ------------------------------
 graph_live_music_city_sized <- function(city_name, size_var = c("log1p", "raw"), year = 2024) {
   size_var <- match.arg(size_var)
 
@@ -367,8 +464,13 @@ graph_live_music_city_sized <- function(city_name, size_var = c("log1p", "raw"),
     filter(!is.na(review_count)) |>
     st_transform(st_crs(city_poly))
 
-  rb_points <- pts
-  lm_points <- pts |> filter(live_music == 1)
+  rb_points <- pts |>
+    filter(live_music == 0) |> 
+    mutate(pt_type = "No Live Music")
+  
+  lm_points <- pts |> 
+    filter(live_music == 1) |> 
+    mutate(pt_type = "Live Music")
 
   bb <- st_bbox(city_poly)
 
@@ -379,13 +481,37 @@ graph_live_music_city_sized <- function(city_name, size_var = c("log1p", "raw"),
     geom_sf(data = layers$water_line, alpha = 0.3) +
     geom_sf(data = layers$tracts, fill = NA, linewidth = 0.15, alpha = 0.7) +
     geom_sf(data = city_poly, fill = NA, linewidth = 0.4) +
-    geom_sf(data = rb_points, aes(size = !!size_aes), color = COLORS[1], alpha = 0.5) +
-    geom_sf(data = lm_points, aes(size = !!size_aes), color = COLORS[2], alpha = 0.5) +
+    geom_sf(data = rb_points, aes(size = !!size_aes, colour = pt_type), alpha = 0.5) +
+    geom_sf(data = lm_points, aes(size = !!size_aes, colour = pt_type), alpha = 0.5) +
     scale_size_area(max_size = 2, name = "Review count") +
+    scale_colour_manual(
+      name   = "",
+      values = c("No Live Music" = COLORS[1], "Live Music" = COLORS[2]),
+      drop   = FALSE
+    ) +
     coord_sf(xlim = c(bb["xmin"], bb["xmax"]),
              ylim = c(bb["ymin"], bb["ymax"])) +
-    theme_void()
+    theme_void() +
+    guides(colour = guide_legend(override.aes = list(size = 2, alpha = 1))) +
+    guides(size = "none") +
+    theme(legend.position = "bottom")
 }
+
+sized_city_plots <- wrap_plots(
+  lapply(CITIES, graph_live_music_city_sized), ncol = NUM_GRAPH_COLS) + 
+  plot_annotation(tag_levels = list(CITIES)) +
+  plot_layout(guides = "collect") &
+  theme(
+    legend.position = "right",
+    plot.tag = element_text(size = FONT_SIZE, face = "plain", hjust = 0.5),
+    plot.tag.position = c(0.5, 0.0),
+    plot.margin = margin(6, 6, 14, 6)
+  )
+# these don't look great, but we'll use the regular pretty ones!
+
+ggsave(filename = "graphs/sized_cities/all_sized_city_plots.png", 
+       sized_city_plots, width = 14, height = 10, dpi = 300)
+
 
 purrr::walk(CITIES, \(city) {
   p <- graph_live_music_city_sized(city, size_var = "log1p")  # change to "raw" if desired
@@ -398,6 +524,4 @@ purrr::walk(CITIES, \(city) {
   ggsave(filename = file, plot = p, width = 8, height = 6, dpi = 300)
 })
 
-# Quick checks ------------------------------------------------------------
-graph_live_music_city_pretty("Nashville")
 graph_live_music_city_sized("Nashville", size_var = "log1p")

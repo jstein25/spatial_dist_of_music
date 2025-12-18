@@ -1,0 +1,29 @@
+
+\begin{table}
+\begin{center}
+\begin{tabular}{l c c c c}
+\toprule
+ & (1) & (2) & (3) & (4) \\
+\midrule
+Constant                & $3.588^{***}$ &               &               &               \\
+                        & $(0.006)$     &               &               &               \\
+Live music              & $0.185^{***}$ & $0.168^{***}$ & $0.105^{***}$ & $0.075^{***}$ \\
+                        & $(0.014)$     & $(0.027)$     & $(0.025)$     & $(0.021)$     \\
+Review Count            &               &               & $0.000^{***}$ & $0.000^{***}$ \\
+                        &               &               & $(0.000)$     & $(0.000)$     \\
+\midrule
+Num. obs.               & $26909$       & $26909$       & $26909$       & $54628$       \\
+R$^2$ (full model)      & $0.007$       & $0.016$       & $0.028$       & $0.217$       \\
+R$^2$ (proj model)      & $$            & $0.005$       & $0.017$       & $0.020$       \\
+Adj. R$^2$ (full model) & $0.007$       & $0.016$       & $0.027$       & $0.215$       \\
+Adj. R$^2$ (proj model) & $$            & $0.005$       & $0.017$       & $0.020$       \\
+Num. groups: city       & $$            & $10$          & $10$          & $10$          \\
+Num. groups: price      & $$            & $$            & $$            & $4$           \\
+Num. groups: categories & $$            & $$            & $$            & $174$         \\
+\bottomrule
+\multicolumn{5}{l}{\scriptsize{$^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$}}
+\end{tabular}
+\caption{Effect of live music on Yelp ratings}
+\label{tab:ratings_live_music}
+\end{center}
+\end{table}
