@@ -84,7 +84,6 @@ restaurant_and_bar_ids <- restaurants_and_bars |>
   select(business_id) |> 
   pull(business_id)
 
-
 # count reviews per restaurant/bar ------------------------------------------
 avg_num_reviews <- restaurants_and_bars |> 
   select(review_count) |> 
@@ -100,6 +99,12 @@ median_num_reviews <- restaurants_and_bars |>
   ) |>
   pull(median_reviews) # median of 37
 
+
+# get review data for rb --------------------------------------------
+restaurant_bar_reviews <- review_data |> 
+  filter(business_id %in% restaurant_and_bar_ids) |> # 3 million total reviews
+  left_join(filtered_business_data |> select(business_id, city), by = "business_id") |> 
+  mutate(year = year(date))
 
 
 
